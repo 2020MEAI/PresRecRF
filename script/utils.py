@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import os
 import sys
 import numpy as np
 import torch
@@ -9,16 +9,20 @@ import networkx as nx
 
 
 class Logger(object):
-    def __init__(self, filename="Default.log"):
-        self.terminal = sys.stdout
-        self.log = open(filename, "w")
+    def __init__(self, filename='Default.log'):
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        self.file = open(filename, 'a', encoding='utf-8')
+        self.encoding = self.file.encoding
 
     def write(self, message):
-        self.terminal.write(message)
-        self.log.write(message)
+        self.file.write(message)
+        self.flush()
 
     def flush(self):
-        pass
+        self.file.flush()
+
+    def close(self):
+        self.file.close()
 
 
 class EarlyStopping:
@@ -128,69 +132,3 @@ class PreDatasetDosage(torch.utils.data.Dataset):
 
     def __len__(self):
         return self.S_array.shape[0]
-
-
-class SubnetworkSymptomTermMapping(object):
-    def __init__(self):
-        self.embedding = Word2Vec.load('D:/Work/Project/SDKG/data/network/Deepwalk/word2vec_symptom_network_128.model')
-        self.embed_list = self.embedding.wv.index_to_key
-        self.symptom_network_data = pd.read_csv('D:/Work/Project/SDKG/data/network/Network.txt')
-        self.symptom_network_data_id = pd.read_csv('D:/Work/Project/SDKG/data/network/Network_id.txt')
-        self.degree_flag: int = 2
-
-    def get_entity_from_graph(self, graph: nx.Graph):
-        """
-        from graph to entity list with filtered degree
-        :param degree_flag:
-        :param graph: connected graph
-        :return: filtered entity list
-        """
-        degree_dict = dict(graph.degree)
-        temp_list = []
-        temp_list_append = temp_list.append
-        for node in degree_dict.keys():
-            # 20211130 add degree flag
-            if degree_dict[node] > self.degree_flag:  # degree filter
-                temp_list_append(node)
-        return temp_list
-
-    def sstm_filter(self, symptom_list):
-        """
-        Subnetwork-based Symptom Term Mapping (SSTM)
-        input: Symptom list
-        :return: SSTMed Symptom list
-        """
-
-        result_sstm_for_list = []
-
-        for symptom in symptom_list:
-            # 20211130 judge
-            if symptom in self.embed_list:
-                # print(symptom, 'in w2v')
-                result_sstm_for_list.append(symptom)
-            else:
-                # 1. Symptom list -> symptom word set list
-                symptom_word = set([word for word in symptom])
-                # print(symptom_word)
-
-                # 2. For set, query edges in symptom df, and construct graph
-                subgraph_df = self.symptom_network_data.query('Source in @symptom_word or Target in @symptom_word')
-                if len(subgraph_df) > 0:
-                    subgraph = nx.from_pandas_edgelist(subgraph_df, 'Source', 'Target')
-
-                    # 3. for "connected graph", get the symptom list with nodes' degree > degree_filter
-                    if nx.is_connected(subgraph):  # connected graph
-                        result_sstm_for_list += self.get_entity_from_graph(subgraph)
-                    else:  # not connected graph
-                        # print(f'Not Connected graph of {symptom} !')
-                        extract_networks = sorted(nx.connected_components(subgraph), key=len, reverse=True)
-                        for subnetwork in extract_networks:
-                            graph_sub = subgraph.subgraph(subnetwork)
-                            assert nx.is_connected(graph_sub) == True
-                            result_sstm_for_list += self.get_entity_from_graph(graph_sub)
-                else:
-                    print(f"The symptom '{symptom}' doesn't have its subgraph in symptom network.")
-
-        result = list(set(result_sstm_for_list))
-        # print(len(result), len(result_sstm_for_list))
-        return result
