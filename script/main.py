@@ -61,7 +61,7 @@ for i in tqdm.tqdm(range(data_amount)):
     sym_array[i, sym_indexes] = 1
 
     # herb with dosage
-    herbs = nwfe.iloc[i, 8].split(',')  # 先以药物为单位切分，切分后每个药物是“herbID|dosage”
+    herbs = nwfe.iloc[i, 8].split(',')
     herb_IDs = [int(i.split('|')[0]) for i in herbs]
     herb_dosages = [float(i.split('|')[1]) for i in herbs]
 
@@ -111,7 +111,7 @@ torch.save(model.state_dict(), f'{base_dir}/checkpoint/checkpoint_{out_name}.pt'
 # model.load_state_dict(torch.load(f'{base_dir}/checkpoint/checkpoint_{out_name}.pt'))
 model.eval()
 
-# 原测试指标
+# Original Evaluation indexes
 test_size = len(test_loader.dataset)
 test_loss = 0
 test_p5 = 0
@@ -124,7 +124,7 @@ test_f1_5 = 0
 test_f1_10 = 0
 test_f1_20 = 0
 
-# 回归相关函数
+# Herb dosage related Evaluation index
 # mse
 mse_criterion = nn.MSELoss()
 # mae

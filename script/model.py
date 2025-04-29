@@ -16,8 +16,8 @@ class PresRecRF(torch.nn.Module):
         self.sym_random = torch.nn.Embedding(self.batch_size, self.embedding_dim)
         self.herb_random = torch.nn.Embedding(self.batch_size, self.embedding_dim)
 
-        # 1. 初始语义embedding
-        # 1.1 读入Semantic向量
+        # 1. Initialize Semantic Embedding
+        # 1.1 Load Semantic Embedding (BERT version)
         if self.semantic == 'BERT':
             self.bert_sym_embedding = nn.Embedding.from_pretrained(
                  torch.from_numpy(np.load(path+'/Semantic_BERT'+'/Sem-symptom.npy')))
@@ -25,7 +25,7 @@ class PresRecRF(torch.nn.Module):
             self.bert_herb_embedding = nn.Embedding.from_pretrained(
                  torch.from_numpy(np.load(path+'/Semantic_BERT'+'/Sem-herb.npy')))
 
-        # 1.2 读入LLM向量
+        # 1.2 Load Semantic Embedding (LLM version)
         elif self.semantic == 'LLM':
             self.bert_sym_embedding = nn.Embedding.from_pretrained(
                  torch.as_tensor(torch.from_numpy(np.load(path+'/Semantic_LLM'+'/LLM-symptom.npy')), dtype=torch.float32))
@@ -40,7 +40,7 @@ class PresRecRF(torch.nn.Module):
             self.bert_herb_embedding = nn.Embedding.from_pretrained(
                 torch.from_numpy(np.load(path + '/Semantic_BERT' + '/Sem-herb.npy')))
 
-        # 2. 初始结构embedding
+        # 2. Initialize Structural Embedding
         self.sym_embedding = nn.Embedding.from_pretrained(
             torch.as_tensor(torch.from_numpy(
                 np.load(path + r'/Structural_Network/Net-HSP-symptom.npy')
@@ -50,7 +50,7 @@ class PresRecRF(torch.nn.Module):
                 np.load(path + r'/Structural_Network/Net-HSP-herb.npy')
             ), dtype=torch.float32))
 
-        #症状
+        # 3. Form Symptom Embedding
         self.mlp_sym_1 = torch.nn.Linear(self.embedding_dim, 256)
         self.tanh_1 = torch.nn.Tanh()
 
@@ -60,10 +60,8 @@ class PresRecRF(torch.nn.Module):
         self.mlp_sym_3 = torch.nn.Linear(256, self.embedding_dim)
         # self.relu = torch.nn.ReLU()
 
-        # bert向量变化--sym
         if self.semantic == 'BERT':
             self.mlp_bert_1 = torch.nn.Linear(768, 256)
-        # # Ada向量变化--sym
         elif self.semantic == 'LLM':
             self.mlp_bert_1 = torch.nn.Linear(1536, 256)
         else:
@@ -71,7 +69,7 @@ class PresRecRF(torch.nn.Module):
 
         self.mlp_bert_2 = torch.nn.Linear(256, self.embedding_dim)
 
-        #药物
+        # 4. Form Herb Embedding
         self.mlp_herb_1 = torch.nn.Linear(self.embedding_dim, 256)
         self.tanh_herb_1 = torch.nn.Tanh()
 
@@ -80,10 +78,8 @@ class PresRecRF(torch.nn.Module):
 
         self.mlp_herb_3 = torch.nn.Linear(256, self.embedding_dim)
 
-        # bert向量变化--药物
         if self.semantic == 'BERT':
             self.mlp_bert_herb_1 = torch.nn.Linear(768, 256)
-        # # ada向量变化-药物
         elif self.semantic == 'LLM':
             self.mlp_bert_herb_1 = torch.nn.Linear(1536, 256)
         else:
