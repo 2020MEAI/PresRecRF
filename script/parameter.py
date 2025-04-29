@@ -1,6 +1,6 @@
 class Para:
     def __init__(self, lr, rec, drop, batch_size, epoch, dev_ratio, test_ratio,
-                 embedding_dim, semantic, molecular, dataset):
+                 embedding_dim, semantic, dataset):
         self.lr = lr
         self.rec = rec
         self.drop = drop
@@ -10,5 +10,4 @@ class Para:
         self.test_ratio = test_ratio
         self.embedding_dim = embedding_dim
         self.semantic = semantic
-        self.molecular = molecular
         self.dataset = dataset

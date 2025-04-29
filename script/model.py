@@ -3,72 +3,54 @@ import numpy as np
 from torch import nn
 
 
-path = 'D:/Work/Project/Github/PresRecRF/data'
+path = '/Users/xindong/Documents/Work/Projects/GitHub-Work/PresRecRF/data'
 
 
 class PresRecRF(torch.nn.Module):
-    def __init__(self, batch_size, embedding_dim, symptom_cnt, herb_cnt, drop_ratio, semantic='Bert', molecular='HSP'):
+    def __init__(self, batch_size, embedding_dim, symptom_cnt, herb_cnt, drop_ratio, semantic='BERT'):
         super(PresRecRF, self).__init__()
         self.batch_size = batch_size
         self.embedding_dim = embedding_dim
         self.semantic = semantic
-        self.molecular = molecular
 
         self.sym_random = torch.nn.Embedding(self.batch_size, self.embedding_dim)
         self.herb_random = torch.nn.Embedding(self.batch_size, self.embedding_dim)
 
-        # 1. 初始语义embedding (1.1 1.2二选一)
-        # 1.1 读入bert向量
-        if self.semantic == 'Bert':
+        # 1. Initialize Semantic Embedding
+        # 1.1 Load Semantic Embedding (BERT version)
+        if self.semantic == 'BERT':
             self.bert_sym_embedding = nn.Embedding.from_pretrained(
-                 torch.from_numpy(np.load(path+'/bert_emb'+'/bert_sym.npy')))
+                 torch.from_numpy(np.load(path+'/Semantic_BERT'+'/Sem-symptom.npy')))
 
             self.bert_herb_embedding = nn.Embedding.from_pretrained(
-                 torch.from_numpy(np.load(path+'/bert_emb'+'/bert_herb.npy')))
+                 torch.from_numpy(np.load(path+'/Semantic_BERT'+'/Sem-herb.npy')))
 
-        # 1.2 读入GPT3.5向量-240104
-        elif self.semantic == 'GPT35':
+        # 1.2 Load Semantic Embedding (LLM version)
+        elif self.semantic == 'LLM':
             self.bert_sym_embedding = nn.Embedding.from_pretrained(
-                 torch.as_tensor(torch.from_numpy(np.load(path+'/Ada'+'/symptom_vectors_ada_240104.npy')), dtype=torch.float32))
+                 torch.as_tensor(torch.from_numpy(np.load(path+'/Semantic_LLM'+'/LLM-symptom.npy')), dtype=torch.float32))
 
             self.bert_herb_embedding = nn.Embedding.from_pretrained(
-                 torch.as_tensor(torch.from_numpy(np.load(path+'/Ada'+'/herb_vectors_ada_240104.npy')), dtype=torch.float32))
+                 torch.as_tensor(torch.from_numpy(np.load(path+'/Semantic_LLM'+'/LLM-herb.npy')), dtype=torch.float32))
 
         else:
             self.bert_sym_embedding = nn.Embedding.from_pretrained(
-                torch.from_numpy(np.load(path + '/bert_emb' + '/bert_sym.npy')))
+                torch.from_numpy(np.load(path + '/Semantic_BERT' + '/Sem-symptom.npy')))
 
             self.bert_herb_embedding = nn.Embedding.from_pretrained(
-                torch.from_numpy(np.load(path + '/bert_emb' + '/bert_herb.npy')))
+                torch.from_numpy(np.load(path + '/Semantic_BERT' + '/Sem-herb.npy')))
 
-        # 2. 初始结构embedding
-        # 2.1 仅药症的embedding
-        if self.molecular == 'HS':
-            self.sym_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(np.load(path+'/method'+'/deepwalk-sym.npy')),dtype=torch.float32))
-            self.herb_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(np.load(path+'/method'+'/deepwalk-herb.npy')),dtype=torch.float32))
+        # 2. Initialize Structural Embedding
+        self.sym_embedding = nn.Embedding.from_pretrained(
+            torch.as_tensor(torch.from_numpy(
+                np.load(path + r'/Structural_Network/Net-HSP-symptom.npy')
+            ), dtype=torch.float32))
+        self.herb_embedding = nn.Embedding.from_pretrained(
+            torch.as_tensor(torch.from_numpy(
+                np.load(path + r'/Structural_Network/Net-HSP-herb.npy')
+            ), dtype=torch.float32))
 
-        # 2.2 补充了分子信息后的embedding
-        elif self.molecular == 'HSP':
-            self.sym_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(
-                    np.load(path + r'/method/deepwalk-sym_AddG_230911.npy')
-                ), dtype=torch.float32))
-            self.herb_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(
-                    np.load(path + r'/method/deepwalk-herb_AddG_230911.npy')
-                ), dtype=torch.float32))
-
-        else:
-            self.sym_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(np.load(path + '/method' + '/deepwalk-sym.npy')),
-                                dtype=torch.float32))
-            self.herb_embedding = nn.Embedding.from_pretrained(
-                torch.as_tensor(torch.from_numpy(np.load(path + '/method' + '/deepwalk-herb.npy')),
-                                dtype=torch.float32))
-
-        #症状
+        # 3. Form Symptom Embedding
         self.mlp_sym_1 = torch.nn.Linear(self.embedding_dim, 256)
         self.tanh_1 = torch.nn.Tanh()
 
@@ -78,18 +60,16 @@ class PresRecRF(torch.nn.Module):
         self.mlp_sym_3 = torch.nn.Linear(256, self.embedding_dim)
         # self.relu = torch.nn.ReLU()
 
-        # bert向量变化--sym
-        if self.semantic == 'Bert':
+        if self.semantic == 'BERT':
             self.mlp_bert_1 = torch.nn.Linear(768, 256)
-        # # Ada向量变化--sym
-        elif self.semantic == 'GPT35':
+        elif self.semantic == 'LLM':
             self.mlp_bert_1 = torch.nn.Linear(1536, 256)
         else:
             self.mlp_bert_1 = torch.nn.Linear(768, 256)
 
         self.mlp_bert_2 = torch.nn.Linear(256, self.embedding_dim)
 
-        #药物
+        # 4. Form Herb Embedding
         self.mlp_herb_1 = torch.nn.Linear(self.embedding_dim, 256)
         self.tanh_herb_1 = torch.nn.Tanh()
 
@@ -98,11 +78,9 @@ class PresRecRF(torch.nn.Module):
 
         self.mlp_herb_3 = torch.nn.Linear(256, self.embedding_dim)
 
-        # bert向量变化--药物
-        if self.semantic == 'Bert':
+        if self.semantic == 'BERT':
             self.mlp_bert_herb_1 = torch.nn.Linear(768, 256)
-        # # ada向量变化-药物
-        elif self.semantic == 'GPT35':
+        elif self.semantic == 'LLM':
             self.mlp_bert_herb_1 = torch.nn.Linear(1536, 256)
         else:
             self.mlp_bert_herb_1 = torch.nn.Linear(768, 256)

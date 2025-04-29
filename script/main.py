@@ -7,7 +7,7 @@ import parameter
 import time
 from model import PresRecRF
 from utils import *
-base_dir = 'D:/Work/Project/Github/PresRecRF'
+base_dir = '/Users/xindong/Documents/Work/Projects/GitHub-Work/PresRecRF'
 
 
 seed = 2022
@@ -19,14 +19,12 @@ if torch.cuda.is_available():
 torch.manual_seed(seed)
 
 params = parameter.Para(
-    lr=7e-4, rec=7e-4, drop=0.1, batch_size=32, epoch=30, dev_ratio=0.0, test_ratio=0.2, embedding_dim=256,
-    semantic='Bert', molecular='HSP', dataset='Lung'
+    lr=7e-4, rec=7e-4, drop=0.1, batch_size=64, epoch=30, dev_ratio=0.0, test_ratio=0.2, embedding_dim=256,
+    semantic='LLM', dataset='Lung'
 )
 epsilon = 1e-13
 
-
-out_name = f'PresRecRF_{params.dataset}_ba{params.batch_size}_ep{params.epoch}_lr{params.lr}_241022'
-
+out_name = f'PresRecRF_{params.dataset}_sem-{params.semantic}'
 
 type = sys.getfilesystemencoding()
 sys.stdout = Logger(f'{base_dir}/log/{out_name}.txt')
@@ -63,7 +61,7 @@ for i in tqdm.tqdm(range(data_amount)):
     sym_array[i, sym_indexes] = 1
 
     # herb with dosage
-    herbs = nwfe.iloc[i, 8].split(',')  # 先以药物为单位切分，切分后每个药物是“herbID|dosage”
+    herbs = nwfe.iloc[i, 8].split(',')
     herb_IDs = [int(i.split('|')[0]) for i in herbs]
     herb_dosages = [float(i.split('|')[1]) for i in herbs]
 
@@ -77,8 +75,7 @@ test_dataset = PreDatasetDosage(sym_array[x_test], herb_array[x_test], herb_dosa
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=params.batch_size)
 test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=params.batch_size)
 
-model = PresRecRF(params.batch_size, params.embedding_dim, symptom_len, herb_len, params.drop, params.semantic,
-                  params.molecular)
+model = PresRecRF(params.batch_size, params.embedding_dim, symptom_len, herb_len, params.drop, params.semantic)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('device: ', device)
 
@@ -114,7 +111,7 @@ torch.save(model.state_dict(), f'{base_dir}/checkpoint/checkpoint_{out_name}.pt'
 # model.load_state_dict(torch.load(f'{base_dir}/checkpoint/checkpoint_{out_name}.pt'))
 model.eval()
 
-# 原测试指标
+# Original Evaluation indexes
 test_size = len(test_loader.dataset)
 test_loss = 0
 test_p5 = 0
@@ -127,7 +124,7 @@ test_f1_5 = 0
 test_f1_10 = 0
 test_f1_20 = 0
 
-# 回归相关函数
+# Herb dosage related Evaluation index
 # mse
 mse_criterion = nn.MSELoss()
 # mae
@@ -200,9 +197,11 @@ test_f1_20 = 2 * test_p20 * test_r20 / (test_p20 + test_r20)
 print(test_p5, test_p10, test_p20, test_r5, test_r10, test_r20, test_f1_5, test_f1_10, test_f1_20)
 
 test_loss_list.append(test_loss / len(test_loader))
+
 print('test_loss: '.format(epoch + 1), test_loss / len(test_loader))
 print('Average loss of dosage: '
       'MSE: ', mse_loss / len(test_loader),
       'MAE: ', mae_loss / len(test_loader),
       'Huber: ', huber_loss / len(test_loader)
-      )
+)
+
