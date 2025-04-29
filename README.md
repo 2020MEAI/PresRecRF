@@ -42,7 +42,7 @@ After running the "main.py" file, the model's Top@K performance metrics on the t
 
 ## 5. Citation and Contact
 
-If you find PresRecST useful for your research, please consider citing the following paper:
+If you find PresRecRF useful for your research, please consider citing the following paper:
 
 ```
 Yang K, Dong X, Zhang S, Yu H, Zhong L, Zhang L, Zhao H, Hou Y, Song X, Zhou X. PresRecRF: Herbal prescription recommendation via the representation fusion of large TCM semantics and molecular knowledge. Phytomedicine. 2024 Oct 1; 135: 156116.
@@ -60,6 +60,6 @@ Yang K, Dong X, Zhang S, Yu H, Zhong L, Zhang L, Zhao H, Hou Y, Song X, Zhou X. 
 }
 ```
 
-<b>If you have better suggestions or questions about our work, please contact us: <a>x_dong@bjtu.edu.cn</a>. </b> 
+<b>If you have better suggestions or questions about our work, please contact us: <a>x_dong@bjtu.edu.cn</a> and <a>kuoyang@bjtu.edu.cn</a>. </b> 
 
 <b>Welcome to follow our project on GitHub: <a>https://github.com/2020MEAI </a> and <a> https://github.com/xdong97 </a>. </b>
